@@ -1,16 +1,26 @@
 {
   "name": "pwa-back",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend para PWA con MongoDB y notificaciones push",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": ["pwa", "backend", "mongodb", "notifications"],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "express": "^5.1.0",
-    "pg": "^8.16.3"
+    "express": "^4.18.2",
+    "mongoose": "^8.0.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "web-push": "^3.6.7",
+    "helmet": "^7.1.0",
+    "express-rate-limit": "^7.1.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
   }
 }

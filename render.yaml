@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: pwa-backend
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        value: mongodb+srv://max:max.lopez.22@cluster0.fixejdk.mongodb.net/pwa-database?retryWrites=true&w=majority
+      - key: VAPID_PUBLIC_KEY
+        value: BLbz7pe2pc9pZnoILf5q43dkshGp9Z-UA6lKpkZtqVaFyasrLTTrJjeNbFFCOBCGtB2KtWRIO8c04O2dXAhwdvA
+      - key: VAPID_PRIVATE_KEY
+        value: NB_Sw6_NpRLOcmnqJD4gG404xsPdilVThhz6dCPFADI
+      - key: FRONTEND_URL
+        value: https://tu-frontend-url.vercel.app
