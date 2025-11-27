@@ -300,6 +300,7 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
     }
 
     // Buscar todos los usuarios con suscripciones activas del tipo especificado
+<<<<<<< HEAD
     // Usar $elemMatch para buscar en el array de suscripciones
     const users = await User.find({
       subscriptions: {
@@ -324,13 +325,25 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
         });
       }
       
+=======
+    const users = await User.find({
+      'subscriptions.active': true,
+      'subscriptions.type': subscriptionType
+    });
+
+    if (users.length === 0) {
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
       return res.json({
         success: true,
         message: `No se encontraron suscripciones activas del tipo: ${subscriptionType}`,
         sent: 0,
+<<<<<<< HEAD
         failed: 0,
         total: 0,
         subscriptionType
+=======
+        total: 0
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
       });
     }
 
@@ -340,11 +353,17 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
 
     // Enviar notificación a cada suscripción del tipo especificado
     for (const user of users) {
+<<<<<<< HEAD
       console.log(`📤 Procesando usuario ${user._id} (${user.name || user.telefono})`);
       const matchingSubscriptions = user.subscriptions.filter(
         sub => sub.active && sub.type === subscriptionType
       );
       console.log(`  Suscripciones encontradas del tipo ${subscriptionType}: ${matchingSubscriptions.length}`);
+=======
+      const matchingSubscriptions = user.subscriptions.filter(
+        sub => sub.active && sub.type === subscriptionType
+      );
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
 
       for (const subData of matchingSubscriptions) {
         try {
@@ -378,6 +397,7 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             sentCount++;
             
             // Guardar notificación en la base de datos
+<<<<<<< HEAD
             try {
               const notification = new Notification({
                 user: user._id,
@@ -398,6 +418,19 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
               console.error('Detalles del error:', saveError);
               // Continuar aunque falle el guardado
             }
+=======
+            const notification = new Notification({
+              user: user._id,
+              title,
+              body,
+              icon: payload.icon,
+              url: payload.url,
+              type: subscriptionType,
+              priority: options?.priority || 'normal',
+              data: payload.data
+            });
+            await notification.save();
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
           } else {
             failedCount++;
             

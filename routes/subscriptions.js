@@ -19,10 +19,15 @@ router.post('/subscribe', async (req, res) => {
 
     // Si hay userId, actualizar el usuario
     if (userId) {
+<<<<<<< HEAD
       console.log(`📝 Guardando suscripción tipo ${type} para userId: ${userId}`);
       const user = await User.findById(userId);
       if (user) {
         console.log(`✅ Usuario encontrado: ${user.name} (${user.telefono})`);
+=======
+      const user = await User.findById(userId);
+      if (user) {
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
         // Guardar suscripción principal (para compatibilidad)
         user.subscription = subscription;
         
@@ -31,9 +36,15 @@ router.post('/subscribe', async (req, res) => {
           user.subscriptions = [];
         }
         
+<<<<<<< HEAD
         // Verificar si ya existe una suscripción con este endpoint Y tipo
         const existingIndex = user.subscriptions.findIndex(
           sub => sub.subscription.endpoint === subscription.endpoint && sub.type === type
+=======
+        // Verificar si ya existe una suscripción con este endpoint
+        const existingIndex = user.subscriptions.findIndex(
+          sub => sub.subscription.endpoint === subscription.endpoint
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
         );
         
         const subscriptionData = {
@@ -48,6 +59,7 @@ router.post('/subscribe', async (req, res) => {
         };
         
         if (existingIndex >= 0) {
+<<<<<<< HEAD
           // Actualizar suscripción existente del mismo tipo
           user.subscriptions[existingIndex] = subscriptionData;
           console.log(`🔄 Actualizando suscripción existente tipo ${type} para usuario ${userId}`);
@@ -68,6 +80,15 @@ router.post('/subscribe', async (req, res) => {
       }
     } else {
       console.warn('⚠️ No se proporcionó userId al suscribirse');
+=======
+          user.subscriptions[existingIndex] = subscriptionData;
+        } else {
+          user.subscriptions.push(subscriptionData);
+        }
+        
+        await user.save();
+      }
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
     }
 
     res.json({
@@ -105,6 +126,7 @@ router.post('/unsubscribe', async (req, res) => {
     if (userId) {
       const user = await User.findById(userId);
       if (user && user.subscriptions) {
+<<<<<<< HEAD
         // Desactivar suscripciones que coincidan con el tipo
         let updated = false;
         user.subscriptions = user.subscriptions.map(sub => {
@@ -139,16 +161,33 @@ router.post('/unsubscribe', async (req, res) => {
                 updatedAt: new Date()
               };
             }
+=======
+        // Desactivar suscripciones que coincidan
+        user.subscriptions = user.subscriptions.map(sub => {
+          if (sub.subscription.endpoint === endpoint) {
+            if (type && sub.type !== type) {
+              return sub; // No desactivar si el tipo no coincide
+            }
+            return {
+              ...sub,
+              active: false,
+              updatedAt: new Date()
+            };
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
           }
           return sub;
         });
         
+<<<<<<< HEAD
         if (updated) {
           await user.save();
           console.log(`✅ Suscripción desactivada y guardada para usuario ${userId}`);
         } else {
           console.log(`⚠️ No se encontró suscripción activa para desactivar (tipo: ${type}, endpoint: ${endpoint})`);
         }
+=======
+        await user.save();
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
       }
     }
 
@@ -184,11 +223,15 @@ router.get('/subscriptions/:userId', async (req, res) => {
     let subscriptions = user.subscriptions || [];
     
     if (activeOnly === 'true') {
+<<<<<<< HEAD
       // Solo incluir suscripciones que están explícitamente activas
       // (active === true o active === undefined, pero NO active === false)
       subscriptions = subscriptions.filter(sub => 
         sub && (sub.active === true || sub.active === undefined)
       );
+=======
+      subscriptions = subscriptions.filter(sub => sub.active);
+>>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
     }
 
     res.json({
