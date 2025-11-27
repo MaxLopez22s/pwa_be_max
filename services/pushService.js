@@ -2,8 +2,9 @@ const webpush = require('web-push');
 const config = require('../config');
 
 // Configurar web-push con las claves VAPID
+const contactEmail = process.env.VAPID_CONTACT_EMAIL || 'mailto:tu-email@ejemplo.com';
 webpush.setVapidDetails(
-  'mailto:tu-email@ejemplo.com', // Email de contacto
+  contactEmail,
   config.vapidKeys.publicKey,
   config.vapidKeys.privateKey
 );

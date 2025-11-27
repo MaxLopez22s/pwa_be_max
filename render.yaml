@@ -17,3 +17,5 @@ services:
         value: NB_Sw6_NpRLOcmnqJD4gG404xsPdilVThhz6dCPFADI
       - key: FRONTEND_URL
         value: https://tu-frontend-url.vercel.app
+
+

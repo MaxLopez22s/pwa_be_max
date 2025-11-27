@@ -1,10 +1,22 @@
 const mongoose = require('mongoose');
 
 const userSchema = new mongoose.Schema({
-  email: {
+  telefono: {
     type: String,
     required: true,
     unique: true,
+    trim: true
+  },
+  password: {
+    type: String,
+    required: true,
+    select: false // No incluir por defecto en consultas, usar .select('+password') cuando se necesite
+  },
+  email: {
+    type: String,
+    required: false,
+    unique: true,
+    sparse: true,
     lowercase: true,
     trim: true
   },
@@ -12,6 +24,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true
+  },
+  isAdmin: {
+    type: Boolean,
+    default: false
   },
   avatar: {
     type: String,
@@ -39,6 +55,39 @@ const userSchema = new mongoose.Schema({
       auth: String
     }
   },
+  subscriptions: [{
+    subscription: {
+      endpoint: String,
+      keys: {
+        p256dh: String,
+        auth: String
+      }
+    },
+    type: {
+      type: String,
+      default: 'default'
+    },
+    config: {
+      title: String,
+      icon: String,
+      badge: String,
+      requireInteraction: Boolean,
+      vibrate: [Number],
+      sound: Boolean
+    },
+    active: {
+      type: Boolean,
+      default: true
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    },
+    updatedAt: {
+      type: Date,
+      default: Date.now
+    }
+  }],
   lastActive: {
     type: Date,
     default: Date.now
@@ -51,8 +100,12 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Índices para mejorar rendimiento (email ya es único, no necesita índice adicional)
+// Índices para mejorar rendimiento
+userSchema.index({ telefono: 1 });
+userSchema.index({ email: 1 });
 userSchema.index({ lastActive: -1 });
 userSchema.index({ isOnline: 1 });
+userSchema.index({ isAdmin: 1 });
 
 module.exports = mongoose.model('User', userSchema);
+

@@ -9,6 +9,7 @@ const config = require('./config');
 const authRoutes = require('./routes/auth');
 const dataRoutes = require('./routes/data');
 const notificationRoutes = require('./routes/notifications');
+const subscriptionRoutes = require('./routes/subscriptions');
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/data', dataRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api', subscriptionRoutes);
 
 // Ruta de salud del servidor
 app.get('/api/health', (req, res) => {
