@@ -202,7 +202,6 @@ router.get('/profile/:userId', async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
 // Obtener usuario por teléfono (para restaurar userId)
 router.get('/user-by-telefono/:telefono', async (req, res) => {
   try {
@@ -260,8 +259,6 @@ router.get('/user-by-telefono/:telefono', async (req, res) => {
   }
 });
 
-=======
->>>>>>> 4e4798affbbce5a97f74cdf8d52f7ae1f869372d
 // Actualizar suscripción push
 router.post('/subscription', async (req, res) => {
   try {
