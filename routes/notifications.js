@@ -421,14 +421,34 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             }
           } else {
             failedCount++;
-            console.error(`❌ Error enviando a usuario ${user._id}: ${pushResult.error} (${pushResult.statusCode || 'N/A'})`);
+            const deviceType = pushResult.isIOS ? 'iOS/iPhone' : 'Otro';
+            console.error(`❌ Error enviando a usuario ${user._id} (${deviceType}): ${pushResult.error} (${pushResult.statusCode || 'N/A'})`);
             
-            // Si la suscripción es inválida, desactivarla
+            // Solo desactivar si es realmente inválida (410, 404, o 400 con VAPID keys incorrectas)
+            // NO desactivar por errores temporales (429, 413, 500, etc.) especialmente en iOS
             if (pushResult.invalidSubscription) {
-              console.log(`🗑️ Desactivando suscripción inválida para usuario ${user._id}`);
-              subData.active = false;
-              subData.updatedAt = new Date();
-              await user.save();
+              if (pushResult.isIOS) {
+                console.log(`⚠️ Suscripción iOS marcada como inválida, pero verificando antes de desactivar...`);
+                // Para iOS, ser más conservador - solo desactivar si es definitivamente inválida
+                if (pushResult.statusCode === 410 || pushResult.statusCode === 404) {
+                  console.log(`🗑️ Desactivando suscripción iOS inválida (${pushResult.statusCode}) para usuario ${user._id}`);
+                  subData.active = false;
+                  subData.updatedAt = new Date();
+                  await user.save();
+                } else {
+                  console.log(`⚠️ Error ${pushResult.statusCode} en iOS - Manteniendo suscripción activa (puede ser temporal)`);
+                }
+              } else {
+                console.log(`🗑️ Desactivando suscripción inválida para usuario ${user._id}`);
+                subData.active = false;
+                subData.updatedAt = new Date();
+                await user.save();
+              }
+            } else {
+              // No es inválida, solo un error temporal
+              if (pushResult.isIOS) {
+                console.log(`⚠️ Error temporal en iOS - Manteniendo suscripción activa para usuario ${user._id}`);
+              }
             }
           }
 
@@ -451,11 +471,22 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             statusCode: error.statusCode || 500
           });
           
-          // Intentar desactivar si parece ser una suscripción inválida
-          if (error.statusCode === 410 || error.statusCode === 404 || error.message.includes('expired')) {
+          // Solo desactivar en casos definitivos (410, 404) - NO desactivar por otros errores
+          // Esto es especialmente importante para iOS que puede tener errores temporales
+          const isIOS = subData?.subscription?.endpoint?.includes('push.apple.com') || 
+                       subData?.subscription?.endpoint?.includes('apns');
+          
+          if (error.statusCode === 410 || error.statusCode === 404) {
+            if (isIOS) {
+              console.log(`⚠️ Desactivando suscripción iOS inválida (${error.statusCode}) para usuario ${user._id}`);
+            } else {
+              console.log(`🗑️ Desactivando suscripción inválida (${error.statusCode}) para usuario ${user._id}`);
+            }
             subData.active = false;
             subData.updatedAt = new Date();
             await user.save();
+          } else if (isIOS) {
+            console.log(`⚠️ Error temporal en iOS (${error.statusCode}) - Manteniendo suscripción activa para usuario ${user._id}`);
           }
         }
       }

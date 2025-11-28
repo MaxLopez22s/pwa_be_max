@@ -10,6 +10,13 @@ webpush.setVapidDetails(
 );
 
 class PushService {
+  // Detectar si el endpoint es de iPhone/iOS
+  static isIOSDevice(endpoint) {
+    if (!endpoint) return false;
+    // Los endpoints de Apple Push Notification service contienen "push.apple.com"
+    return endpoint.includes('push.apple.com') || endpoint.includes('apns');
+  }
+
   // Enviar notificación push a un usuario específico
   static async sendNotification(subscription, payload) {
     try {
@@ -17,60 +24,67 @@ class PushService {
       console.log('✅ Notificación enviada exitosamente');
       return { success: true, result };
     } catch (error) {
+      // Detectar si es dispositivo iOS/iPhone
+      const isIOS = this.isIOSDevice(subscription?.endpoint);
+      
       // Log detallado del error
       const errorDetails = {
         statusCode: error.statusCode,
         message: error.message,
         body: error.body,
-        endpoint: subscription?.endpoint
+        endpoint: subscription?.endpoint ? subscription.endpoint.substring(0, 50) + '...' : 'N/A',
+        isIOS: isIOS
       };
       console.error('❌ Error enviando notificación:', JSON.stringify(errorDetails, null, 2));
       
       // Mapear errores comunes
       let errorMessage = error.message || 'Error desconocido';
+      let invalidSubscription = false;
       
-      // Detectar error de VAPID keys incorrectas
-      if (error.message && error.message.includes('unexpected response code')) {
-        errorMessage = 'Las VAPID keys no coinciden. La suscripción fue creada con diferentes keys. Por favor, vuelve a suscribirte.';
-        return { 
-          success: false, 
-          invalidSubscription: true, 
-          error: errorMessage, 
-          statusCode: 400 
-        };
-      }
+      // Solo marcar como inválida en casos DEFINITIVOS (no temporales)
+      // iOS/iPhone puede tener errores temporales que no deben desactivar la suscripción
       
       if (error.statusCode === 410) {
-        // Suscripción expirada o cancelada
+        // Suscripción expirada o cancelada - SIEMPRE inválida
         errorMessage = 'La suscripción ha expirado o fue cancelada';
-        return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 410 };
+        invalidSubscription = true;
       } else if (error.statusCode === 404) {
-        // Endpoint no encontrado
+        // Endpoint no encontrado - SIEMPRE inválida
         errorMessage = 'Endpoint de suscripción no encontrado';
-        return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 404 };
+        invalidSubscription = true;
       } else if (error.statusCode === 400) {
-        // Solicitud inválida (posible problema con VAPID keys o payload)
+        // Error 400 - Puede ser temporal en iOS
         errorMessage = `Solicitud inválida: ${error.message || 'Verifica las VAPID keys o el payload'}`;
-        return { 
-          success: false, 
-          error: errorMessage, 
-          statusCode: 400,
-          invalidSubscription: true // Marcar como inválida para que se desactive
-        };
+        
+        // Solo marcar como inválida si NO es iOS y es un error de VAPID keys
+        if (!isIOS && error.message && error.message.includes('unexpected response code')) {
+          errorMessage = 'Las VAPID keys no coinciden. La suscripción fue creada con diferentes keys. Por favor, vuelve a suscribirte.';
+          invalidSubscription = true;
+        } else if (isIOS) {
+          // Para iOS, los errores 400 pueden ser temporales - no desactivar
+          console.log('⚠️ Error 400 en dispositivo iOS - No desactivando suscripción (puede ser temporal)');
+        }
       } else if (error.statusCode === 429) {
-        // Demasiadas solicitudes
+        // Demasiadas solicitudes - TEMPORAL, no desactivar
         errorMessage = 'Demasiadas solicitudes. Intenta más tarde';
-        return { success: false, error: errorMessage, statusCode: 429 };
+        console.log('⚠️ Rate limit alcanzado - No desactivando suscripción (error temporal)');
       } else if (error.statusCode === 413) {
-        // Payload demasiado grande
+        // Payload demasiado grande - TEMPORAL (ajustar payload), no desactivar
         errorMessage = 'El payload es demasiado grande';
-        return { success: false, error: errorMessage, statusCode: 413 };
+        console.log('⚠️ Payload demasiado grande - No desactivando suscripción (error de configuración)');
+      } else {
+        // Otros errores (500, 503, etc.) - TEMPORALES, no desactivar
+        if (isIOS) {
+          console.log('⚠️ Error en dispositivo iOS - No desactivando suscripción (puede ser temporal)');
+        }
       }
       
       return { 
         success: false, 
         error: errorMessage,
         statusCode: error.statusCode || 500,
+        invalidSubscription: invalidSubscription,
+        isIOS: isIOS,
         details: error.body || error.message
       };
     }
