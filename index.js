@@ -25,7 +25,26 @@ app.use(helmet());
 
 // Configurar CORS
 app.use(cors({
-  origin: config.frontendUrl,
+  origin: (origin, callback) => {
+    // Permitir requests sin origen (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Verificar si el origen está en la lista permitida
+    const allowedOrigins = Array.isArray(config.frontendUrl) 
+      ? config.frontendUrl 
+      : [config.frontendUrl];
+    
+    if (allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
+      callback(null, true);
+    } else {
+      // En desarrollo, permitir cualquier origen
+      if (config.nodeEnv === 'development') {
+        callback(null, true);
+      } else {
+        callback(new Error('No permitido por CORS'));
+      }
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -90,11 +109,12 @@ app.use((error, req, res, next) => {
 
 // Iniciar servidor
 const PORT = config.port;
-app.listen(PORT, () => {
+// Escuchar en 0.0.0.0 para que funcione en Render y otros servicios cloud
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
   console.log(`📱 Frontend URL: ${config.frontendUrl}`);
   console.log(`🌍 Entorno: ${config.nodeEnv}`);
-  console.log(`📊 MongoDB: ${config.mongodbUri}`);
+  console.log(`📊 MongoDB: ${config.useDatabase ? 'Conectado' : 'Deshabilitado'}`);
 });
 
 module.exports = app;
