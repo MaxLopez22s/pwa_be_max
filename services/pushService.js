@@ -29,6 +29,17 @@ class PushService {
       // Mapear errores comunes
       let errorMessage = error.message || 'Error desconocido';
       
+      // Detectar error de VAPID keys incorrectas
+      if (error.message && error.message.includes('unexpected response code')) {
+        errorMessage = 'Las VAPID keys no coinciden. La suscripción fue creada con diferentes keys. Por favor, vuelve a suscribirte.';
+        return { 
+          success: false, 
+          invalidSubscription: true, 
+          error: errorMessage, 
+          statusCode: 400 
+        };
+      }
+      
       if (error.statusCode === 410) {
         // Suscripción expirada o cancelada
         errorMessage = 'La suscripción ha expirado o fue cancelada';
@@ -37,10 +48,16 @@ class PushService {
         // Endpoint no encontrado
         errorMessage = 'Endpoint de suscripción no encontrado';
         return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 404 };
-      } else if (error.statusCode === 400) {
+      } else       if (error.statusCode === 400 || error.message.includes('unexpected response code')) {
         // Solicitud inválida (posible problema con VAPID keys o payload)
-        errorMessage = `Solicitud inválida: ${error.message || 'Verifica las VAPID keys o el payload'}`;
-        return { success: false, error: errorMessage, statusCode: 400 };
+        // "Received unexpected response code" generalmente indica VAPID keys incorrectas
+        errorMessage = `Las VAPID keys no coinciden o la suscripción es inválida. La suscripción puede haber sido creada con diferentes keys. Error: ${error.message || 'Verifica las VAPID keys'}`;
+        return { 
+          success: false, 
+          error: errorMessage, 
+          statusCode: 400,
+          invalidSubscription: true // Marcar como inválida para que se desactive
+        };
       } else if (error.statusCode === 429) {
         // Demasiadas solicitudes
         errorMessage = 'Demasiadas solicitudes. Intenta más tarde';
