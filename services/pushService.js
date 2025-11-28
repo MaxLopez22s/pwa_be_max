@@ -14,17 +14,49 @@ class PushService {
   static async sendNotification(subscription, payload) {
     try {
       const result = await webpush.sendNotification(subscription, JSON.stringify(payload));
-      console.log('✅ Notificación enviada:', result);
+      console.log('✅ Notificación enviada exitosamente');
       return { success: true, result };
     } catch (error) {
-      console.error('❌ Error enviando notificación:', error);
+      // Log detallado del error
+      const errorDetails = {
+        statusCode: error.statusCode,
+        message: error.message,
+        body: error.body,
+        endpoint: subscription?.endpoint
+      };
+      console.error('❌ Error enviando notificación:', JSON.stringify(errorDetails, null, 2));
       
-      // Si la suscripción es inválida, devolver información para limpiar
+      // Mapear errores comunes
+      let errorMessage = error.message || 'Error desconocido';
+      
       if (error.statusCode === 410) {
-        return { success: false, invalidSubscription: true, error: error.message };
+        // Suscripción expirada o cancelada
+        errorMessage = 'La suscripción ha expirado o fue cancelada';
+        return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 410 };
+      } else if (error.statusCode === 404) {
+        // Endpoint no encontrado
+        errorMessage = 'Endpoint de suscripción no encontrado';
+        return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 404 };
+      } else if (error.statusCode === 400) {
+        // Solicitud inválida (posible problema con VAPID keys o payload)
+        errorMessage = `Solicitud inválida: ${error.message || 'Verifica las VAPID keys o el payload'}`;
+        return { success: false, error: errorMessage, statusCode: 400 };
+      } else if (error.statusCode === 429) {
+        // Demasiadas solicitudes
+        errorMessage = 'Demasiadas solicitudes. Intenta más tarde';
+        return { success: false, error: errorMessage, statusCode: 429 };
+      } else if (error.statusCode === 413) {
+        // Payload demasiado grande
+        errorMessage = 'El payload es demasiado grande';
+        return { success: false, error: errorMessage, statusCode: 413 };
       }
       
-      return { success: false, error: error.message };
+      return { 
+        success: false, 
+        error: errorMessage,
+        statusCode: error.statusCode || 500,
+        details: error.body || error.message
+      };
     }
   }
 

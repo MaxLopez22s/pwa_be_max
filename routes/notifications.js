@@ -326,6 +326,25 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
 
       for (const subData of matchingSubscriptions) {
         try {
+          // Validar que la suscripción tenga la estructura correcta
+          if (!subData.subscription || !subData.subscription.endpoint) {
+            console.warn(`⚠️ Suscripción inválida para usuario ${user._id}: falta endpoint`);
+            failedCount++;
+            results.push({
+              userId: user._id.toString(),
+              endpoint: 'N/A',
+              success: false,
+              error: 'Suscripción sin endpoint válido',
+              invalidSubscription: true
+            });
+            
+            // Desactivar suscripción inválida
+            subData.active = false;
+            subData.updatedAt = new Date();
+            await user.save();
+            continue;
+          }
+
           const subConfig = subData.config || {};
           
           // Crear payload personalizado según la configuración de la suscripción
@@ -350,10 +369,12 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             }
           );
 
+          console.log(`📤 Enviando notificación a: ${subData.subscription.endpoint.substring(0, 50)}...`);
           const pushResult = await PushService.sendNotification(subData.subscription, payload);
 
           if (pushResult.success) {
             sentCount++;
+            console.log(`✅ Notificación enviada exitosamente a usuario ${user._id}`);
             
             // Guardar notificación en la base de datos
             const notification = new Notification({
@@ -369,9 +390,11 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             await notification.save();
           } else {
             failedCount++;
+            console.error(`❌ Error enviando a usuario ${user._id}: ${pushResult.error} (${pushResult.statusCode || 'N/A'})`);
             
             // Si la suscripción es inválida, desactivarla
             if (pushResult.invalidSubscription) {
+              console.log(`🗑️ Desactivando suscripción inválida para usuario ${user._id}`);
               subData.active = false;
               subData.updatedAt = new Date();
               await user.save();
@@ -382,17 +405,27 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             userId: user._id.toString(),
             endpoint: subData.subscription.endpoint,
             success: pushResult.success,
-            error: pushResult.error
+            error: pushResult.error,
+            statusCode: pushResult.statusCode,
+            invalidSubscription: pushResult.invalidSubscription
           });
         } catch (error) {
           failedCount++;
-          console.error(`Error enviando a usuario ${user._id}:`, error);
+          console.error(`❌ Excepción enviando a usuario ${user._id}:`, error);
           results.push({
             userId: user._id.toString(),
-            endpoint: subData.subscription.endpoint,
+            endpoint: subData?.subscription?.endpoint || 'N/A',
             success: false,
-            error: error.message
+            error: error.message || 'Error desconocido',
+            statusCode: error.statusCode || 500
           });
+          
+          // Intentar desactivar si parece ser una suscripción inválida
+          if (error.statusCode === 410 || error.statusCode === 404 || error.message.includes('expired')) {
+            subData.active = false;
+            subData.updatedAt = new Date();
+            await user.save();
+          }
         }
       }
     }
