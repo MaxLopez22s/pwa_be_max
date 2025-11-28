@@ -300,17 +300,37 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
     }
 
     // Buscar todos los usuarios con suscripciones activas del tipo especificado
+    // Usar $elemMatch para buscar en el array de suscripciones
     const users = await User.find({
-      'subscriptions.active': true,
-      'subscriptions.type': subscriptionType
+      subscriptions: {
+        $elemMatch: {
+          active: true,
+          type: subscriptionType
+        }
+      }
     });
+    
+    console.log(`Usuarios encontrados con suscripción tipo ${subscriptionType}:`, users.length);
 
     if (users.length === 0) {
+      console.log(`⚠️ No se encontraron usuarios con suscripción activa del tipo: ${subscriptionType}`);
+      // Debug: verificar si hay usuarios con suscripciones en general
+      const allUsersWithSubs = await User.find({ 'subscriptions.0': { $exists: true } });
+      console.log(`Usuarios con suscripciones (cualquier tipo): ${allUsersWithSubs.length}`);
+      if (allUsersWithSubs.length > 0) {
+        allUsersWithSubs.forEach(u => {
+          console.log(`Usuario ${u._id} tiene ${u.subscriptions?.length || 0} suscripciones:`, 
+            u.subscriptions?.map(s => `${s.type} (${s.active ? 'activa' : 'inactiva'})`).join(', '));
+        });
+      }
+      
       return res.json({
         success: true,
         message: `No se encontraron suscripciones activas del tipo: ${subscriptionType}`,
         sent: 0,
-        total: 0
+        failed: 0,
+        total: 0,
+        subscriptionType
       });
     }
 
@@ -320,9 +340,11 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
 
     // Enviar notificación a cada suscripción del tipo especificado
     for (const user of users) {
+      console.log(`📤 Procesando usuario ${user._id} (${user.name || user.telefono})`);
       const matchingSubscriptions = user.subscriptions.filter(
         sub => sub.active && sub.type === subscriptionType
       );
+      console.log(`  Suscripciones encontradas del tipo ${subscriptionType}: ${matchingSubscriptions.length}`);
 
       for (const subData of matchingSubscriptions) {
         try {
@@ -377,17 +399,26 @@ router.post('/admin/send-by-subscription-type', async (req, res) => {
             console.log(`✅ Notificación enviada exitosamente a usuario ${user._id}`);
             
             // Guardar notificación en la base de datos
-            const notification = new Notification({
-              user: user._id,
-              title,
-              body,
-              icon: payload.icon,
-              url: payload.url,
-              type: subscriptionType,
-              priority: options?.priority || 'normal',
-              data: payload.data
-            });
-            await notification.save();
+            try {
+              const notification = new Notification({
+                user: user._id,
+                title,
+                body,
+                icon: payload.icon || icon || '/icons/ico1.ico',
+                url: payload.url || url || '/',
+                type: subscriptionType,
+                priority: options?.priority || 'normal',
+                data: payload.data || {},
+                sent: true,
+                sentAt: new Date()
+              });
+              const savedNotification = await notification.save();
+              console.log(`✅ Notificación guardada en MongoDB para usuario ${user._id}:`, savedNotification._id);
+            } catch (saveError) {
+              console.error(`❌ Error guardando notificación para usuario ${user._id}:`, saveError.message);
+              console.error('Detalles del error:', saveError);
+              // Continuar aunque falle el guardado
+            }
           } else {
             failedCount++;
             console.error(`❌ Error enviando a usuario ${user._id}: ${pushResult.error} (${pushResult.statusCode || 'N/A'})`);

@@ -13,8 +13,24 @@ const config = {
     privateKey: process.env.VAPID_PRIVATE_KEY || 'NB_Sw6_NpRLOcmnqJD4gG404xsPdilVThhz6dCPFADI'
   },
   
-  // CORS
-  frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
+  // CORS - Permitir múltiples orígenes separados por coma
+  // Incluir URLs de Vercel por defecto si no está configurada la variable de entorno
+  frontendUrl: process.env.FRONTEND_URL 
+    ? process.env.FRONTEND_URL.split(',').map(url => url.trim())
+    : [
+        'http://localhost:3000', 
+        'https://localhost:3000',
+        'https://pwamax-amber.vercel.app',
+        'https://pawmax.vercel.app'
+      ],
+  
+  // Log para debug
+  _debug: () => {
+    console.log('🔍 DEBUG - Variables de entorno:');
+    console.log('  FRONTEND_URL:', process.env.FRONTEND_URL);
+    console.log('  NODE_ENV:', process.env.NODE_ENV);
+    console.log('  PORT:', process.env.PORT);
+  },
   
   // Rate limiting
   rateLimit: {

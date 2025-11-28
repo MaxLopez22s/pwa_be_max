@@ -202,6 +202,63 @@ router.get('/profile/:userId', async (req, res) => {
   }
 });
 
+// Obtener usuario por teléfono (para restaurar userId)
+router.get('/user-by-telefono/:telefono', async (req, res) => {
+  try {
+    const { telefono } = req.params;
+    
+    // Buscar en MongoDB
+    let user = null;
+    try {
+      user = await User.findOne({ telefono }).select('-password -subscription');
+    } catch (dbError) {
+      console.warn('MongoDB no disponible:', dbError.message);
+    }
+    
+    // Si no existe en MongoDB, buscar en usuarios de prueba
+    if (!user) {
+      const testUser = testUsers.find(u => u.telefono === telefono);
+      if (testUser) {
+        return res.json({
+          success: true,
+          user: {
+            telefono: testUser.telefono,
+            nombre: testUser.nombre,
+            email: testUser.email,
+            isAdmin: testUser.isAdmin || false
+            // Nota: usuarios de prueba no tienen _id
+          }
+        });
+      }
+    }
+    
+    if (user) {
+      return res.json({
+        success: true,
+        user: {
+          id: user._id,
+          telefono: user.telefono,
+          nombre: user.name,
+          email: user.email,
+          isAdmin: user.isAdmin || false
+        }
+      });
+    }
+    
+    res.status(404).json({
+      success: false,
+      message: 'Usuario no encontrado'
+    });
+  } catch (error) {
+    console.error('Error obteniendo usuario por teléfono:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+});
+
 // Actualizar suscripción push
 router.post('/subscription', async (req, res) => {
   try {
@@ -538,7 +595,7 @@ const checkIsAdmin = async (telefono) => {
   }
 };
 
-// Exportar función isAdmin para uso en otras rutas
+// Exportar router y funciones helper
+module.exports = router;
 module.exports.isAdmin = isAdmin;
 module.exports.checkIsAdmin = checkIsAdmin;
-module.exports = router;

@@ -30,7 +30,8 @@ const notificationSchema = new mongoose.Schema({
   },
   type: {
     type: String,
-    enum: ['info', 'success', 'warning', 'error', 'reminder'],
+    // Permitir tipos de suscripción (default, alerts, messages, updates, promotions) 
+    // y tipos tradicionales (info, success, warning, error, reminder)
     default: 'info'
   },
   priority: {
