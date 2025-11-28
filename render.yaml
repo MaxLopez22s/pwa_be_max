@@ -17,7 +17,7 @@ services:
       # URL del frontend en Vercel
       # Puedes agregar múltiples URLs separadas por coma: url1,url2,url3
       - key: FRONTEND_URL
-        value: https://pawmax.vercel.app
+        value: https://pwamax-amber.vercel.app,https://pawmax.vercel.app
       - key: USE_DATABASE
         value: "true"
 
