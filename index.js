@@ -34,13 +34,26 @@ app.use(cors({
       ? config.frontendUrl 
       : [config.frontendUrl];
     
-    if (allowedOrigins.some(allowed => origin === allowed || origin.startsWith(allowed))) {
+    // Log para debug
+    console.log(`🌐 CORS check - Origin: ${origin}, Allowed:`, allowedOrigins);
+    
+    // Verificar coincidencia exacta o que comience con la URL permitida
+    const isAllowed = allowedOrigins.some(allowed => {
+      const exactMatch = origin === allowed;
+      const startsWithMatch = origin.startsWith(allowed);
+      return exactMatch || startsWithMatch;
+    });
+    
+    if (isAllowed) {
+      console.log(`✅ CORS permitido para: ${origin}`);
       callback(null, true);
     } else {
       // En desarrollo, permitir cualquier origen
       if (config.nodeEnv === 'development') {
+        console.log(`⚠️ CORS permitido (modo desarrollo) para: ${origin}`);
         callback(null, true);
       } else {
+        console.log(`❌ CORS bloqueado para: ${origin}`);
         callback(new Error('No permitido por CORS'));
       }
     }
@@ -111,8 +124,11 @@ app.use((error, req, res, next) => {
 const PORT = config.port;
 // Escuchar en 0.0.0.0 para que funcione en Render y otros servicios cloud
 app.listen(PORT, '0.0.0.0', () => {
+  // Debug de variables de entorno
+  config._debug();
+  
   console.log(`🚀 Servidor iniciado en puerto ${PORT}`);
-  console.log(`📱 Frontend URL: ${config.frontendUrl}`);
+  console.log(`📱 Frontend URLs permitidas:`, config.frontendUrl);
   console.log(`🌍 Entorno: ${config.nodeEnv}`);
   console.log(`📊 MongoDB: ${config.useDatabase ? 'Conectado' : 'Deshabilitado'}`);
 });
