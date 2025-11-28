@@ -594,3 +594,8 @@ const checkIsAdmin = async (telefono) => {
     return false;
   }
 };
+
+// Exportar router y funciones helper
+module.exports = router;
+module.exports.isAdmin = isAdmin;
+module.exports.checkIsAdmin = checkIsAdmin;
