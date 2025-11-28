@@ -30,7 +30,7 @@ const config = {
     console.log('  FRONTEND_URL:', process.env.FRONTEND_URL);
     console.log('  NODE_ENV:', process.env.NODE_ENV);
     console.log('  PORT:', process.env.PORT);
-  }
+  },
   
   // Rate limiting
   rateLimit: {
