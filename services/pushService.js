@@ -48,10 +48,9 @@ class PushService {
         // Endpoint no encontrado
         errorMessage = 'Endpoint de suscripción no encontrado';
         return { success: false, invalidSubscription: true, error: errorMessage, statusCode: 404 };
-      } else       if (error.statusCode === 400 || error.message.includes('unexpected response code')) {
+      } else if (error.statusCode === 400) {
         // Solicitud inválida (posible problema con VAPID keys o payload)
-        // "Received unexpected response code" generalmente indica VAPID keys incorrectas
-        errorMessage = `Las VAPID keys no coinciden o la suscripción es inválida. La suscripción puede haber sido creada con diferentes keys. Error: ${error.message || 'Verifica las VAPID keys'}`;
+        errorMessage = `Solicitud inválida: ${error.message || 'Verifica las VAPID keys o el payload'}`;
         return { 
           success: false, 
           error: errorMessage, 
